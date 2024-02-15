@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// https://eips.ethereum.org/EIPS/eip-1967
 pragma solidity ^0.8.20;
 
 library StorageSlot {
