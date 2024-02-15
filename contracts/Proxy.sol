@@ -16,6 +16,26 @@ library StorageSlot {
     }
 }
 
+contract Logic1 {
+    uint public x;
+
+    function changeX(uint _x) external {
+        x = _x;
+    }
+}
+
+contract Logic2 {
+    uint public x;
+
+    function changeX(uint _x) external {
+        x += 2 * _x;
+    }
+
+    function triple(uint _x) external {
+        x += 3 * _x;
+    }
+}
+
 contract Proxy {
     /**
      * @dev Storage slot with the address of the current implementation.
@@ -45,21 +65,37 @@ contract Proxy {
         );
         _;
     }
-    event Upgraded(address indexed implementation);
-
+    event UpgradedImplementation(address indexed add);
+    event UpgradedAdmin(address indexed add);
+    
+    modifier ifAdmin() {
+        if (msg.sender == getAdmin()) {
+            _;
+        } else {
+            _fallback();
+        }
+    }
     function changeImplementation(address _add) external onlyAdmin {
         require(_add.code.length > 0, "address is not a contract address");
         StorageSlot.getStorageSlot(IMPLEMENTATION_SLOT).value = _add;
-        emit Upgraded(_add);
+        emit UpgradedImplementation(_add);
+    }
+
+    function changeAdmin(address _add) external onlyAdmin {
+        require(_add != address(0));
+        StorageSlot.getStorageSlot(ADMIN_SLOT).value = _add;
+        emit UpgradedAdmin(_add);
     }
 
     function getImplementation() external view returns (address) {
         return StorageSlot.getStorageSlot(IMPLEMENTATION_SLOT).value;
     }
 
-    function getAdmin() external view returns (address) {
+    function getAdmin() public view returns (address) {
         return StorageSlot.getStorageSlot(ADMIN_SLOT).value;
     }
+
+
 
     function _fallback() private {
         // forward all calls to implementation
@@ -114,22 +150,45 @@ contract Proxy {
     }
 }
 
-contract Logic1 {
-    uint public x;
+contract ProxyAdmin {
+    address public admin;
+    address payable proxy;
 
-    function changeX(uint _x) external {
-        x = _x;
-    }
-}
-
-contract Logic2 {
-    uint public x;
-
-    function changeX(uint _x) external {
-        x += 2 * _x;
+    constructor(address payable _proxy) {
+        proxy = _proxy;
+        admin = msg.sender;
     }
 
-    function triple(uint _x) external {
-        x += 3 * _x;
+    modifier onlyAdmin() {
+        require(msg.sender == admin);
+        _;
+    }
+
+    function changeImplementation(address _add) external onlyAdmin {
+        Proxy(proxy).changeImplementation(_add);
+    }
+
+    function changeProxyAdmin(address _admi) external onlyAdmin {
+        Proxy(proxy).changeAdmin(_admi);
+    }
+
+    function getImplementation() external view returns (address) {
+        (bool ok, bytes memory res) = proxy.staticcall(
+            abi.encodeCall(Proxy.getImplementation, ())
+        );
+        require(ok, "call failed");
+        return abi.decode(res, (address));
+    }
+
+    function getAdmin() external view returns (address) {
+        (bool ok, bytes memory res) = proxy.staticcall(
+            abi.encodeCall(Proxy.getAdmin, ())
+        );
+        require(ok, "call failed");
+        return abi.decode(res, (address));
+    }
+
+    function changeAdmin(address _addr) external {
+        admin = _addr;
     }
 }
