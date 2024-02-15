@@ -27,9 +27,7 @@ describe("Proxy", function () {
     return { proxy,logic1,proxyAsLogic1,proxyAsLogic2,logic2, owner, otherAccount };
   }
 
-  async function lookupSlot(contractAddress: Addressable | string, slot: string) : Promise<number>{
-    return parseInt(await ethers.provider.getStorage(contractAddress,slot))
-  }
+
 
   describe("Deployment", function () {
    let proxy: Proxy
@@ -58,16 +56,16 @@ describe("Proxy", function () {
       expect(await proxy.getImplementation()).to.equal(logic1.target);
     });
     it("Should change x", async function () {
-      expect(await lookupSlot(proxy.target,"0x0")).to.equal(0)
+      expect(await proxyAsLogic1.x()).to.equal(0)
       await proxyAsLogic1.changeX(1)
-      expect(await lookupSlot(proxy.target,"0x0")).to.equal(1)
+      expect(await proxyAsLogic1.x()).to.equal(1)
     });
 
 
-    it("Should change implementation", async function () {
+    it("Should change implementation 2", async function () {
       await proxy.changeImplementation(logic2.target)
     });
-    it("Should get new implementation address", async function () {
+    it("Should get new implementation 2 address", async function () {
       
       expect(await proxy.getImplementation()).to.equal(logic2.target);
     });
@@ -75,9 +73,9 @@ describe("Proxy", function () {
     it("Should change x and triple", async function () {
 
       await proxyAsLogic2.changeX(2)
-      expect(await lookupSlot(proxy.target,"0x0")).to.equal(5)
+      expect(await proxyAsLogic1.x()).to.equal(5)
       await proxyAsLogic2.triple(2)
-      expect(await lookupSlot(proxy.target,"0x0")).to.equal(11)
+      expect(await proxyAsLogic1.x()).to.equal(11)
 
       console.log(ethers.parseEther("1"))
     });
